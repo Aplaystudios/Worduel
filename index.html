@@ -1,15 +1,22 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Worduel - Complete Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0e14">
+    <title>Worduel - Mobile</title>
+    <link rel="manifest" href="manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;900&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         :root {
@@ -38,6 +45,10 @@
             color: var(--text-primary);
             min-height: 100vh;
             overflow-x: hidden;
+            position: fixed;
+            width: 100%;
+            touch-action: manipulation;
+            overscroll-behavior: none;
         }
 
         body::before {
@@ -51,15 +62,101 @@
             pointer-events: none;
         }
 
+        /* Install Prompt */
+        .install-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, var(--neon-green), var(--neon-cyan));
+            color: var(--bg-primary);
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            display: none;
+            z-index: 10001;
+            animation: slideUp 0.3s ease;
+        }
+
+        .install-prompt.show {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+        }
+
+        .install-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .install-icon {
+            font-size: 32px;
+        }
+
+        .install-text h3 {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .install-text p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .install-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .install-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .install-btn.primary {
+            background: var(--bg-primary);
+            color: var(--neon-green);
+        }
+
+        .install-btn.secondary {
+            background: rgba(0, 0, 0, 0.2);
+            color: var(--bg-primary);
+        }
+
+        /* Mobile optimizations */
         .screen {
             display: none;
+            height: 100vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .screen.active {
             display: block;
         }
 
-        /* ===== SPLASH SCREEN ===== */
+        /* Safe area support for notch devices */
+        @supports (padding: max(0px)) {
+            body {
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+        }
+
+        /* Splash Screen - Mobile optimized */
         .splash-screen {
             position: fixed;
             inset: 0;
@@ -75,42 +172,42 @@
         }
 
         .splash-logo {
-            font-size: 100px;
-            margin-bottom: 20px;
+            font-size: 80px;
+            margin-bottom: 16px;
             animation: float 3s ease-in-out infinite;
             filter: drop-shadow(var(--glow-green));
         }
 
         @keyframes float {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
+            50% { transform: translateY(-12px); }
         }
 
         .splash-title {
-            font-size: 64px;
+            font-size: 48px;
             font-weight: 900;
-            letter-spacing: -2px;
-            margin-bottom: 12px;
+            letter-spacing: -1.5px;
+            margin-bottom: 10px;
             background: linear-gradient(135deg, var(--neon-green), var(--neon-cyan));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .splash-subtitle {
-            font-size: 16px;
+            font-size: 13px;
             color: var(--text-secondary);
             text-transform: uppercase;
-            letter-spacing: 3px;
-            margin-bottom: 40px;
+            letter-spacing: 2px;
+            margin-bottom: 32px;
         }
 
         .loading-bar {
-            width: 280px;
-            height: 4px;
+            width: 240px;
+            height: 3px;
             background: var(--bg-secondary);
             border-radius: 2px;
             overflow: hidden;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
         }
 
         .loading-progress {
@@ -127,83 +224,83 @@
 
         .splash-timer {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 14px;
+            font-size: 12px;
             color: var(--text-muted);
-            margin-top: 8px;
+            margin-top: 6px;
         }
 
         .splash-credit {
             position: absolute;
-            bottom: 32px;
-            font-size: 12px;
+            bottom: 28px;
+            font-size: 11px;
             color: var(--text-muted);
         }
 
-        /* ===== HOME SCREEN ===== */
+        /* Home Screen - Mobile optimized */
         .home-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px;
+            max-width: 100%;
+            padding: 20px 16px;
+            padding-bottom: 40px;
         }
 
         .home-header {
             text-align: center;
-            margin-bottom: 48px;
+            margin-bottom: 32px;
         }
 
         .home-logo {
-            font-size: 72px;
-            margin-bottom: 12px;
+            font-size: 56px;
+            margin-bottom: 10px;
             filter: drop-shadow(var(--glow-green));
         }
 
         .home-title {
-            font-size: 48px;
+            font-size: 36px;
             font-weight: 900;
             letter-spacing: -1px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             background: linear-gradient(135deg, var(--neon-green), var(--neon-cyan));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .home-tagline {
-            font-size: 14px;
+            font-size: 11px;
             color: var(--text-secondary);
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1.5px;
         }
 
         .stats-display {
             background: var(--bg-secondary);
             border: 1px solid var(--border-primary);
-            border-radius: 16px;
-            padding: 28px;
-            margin-bottom: 40px;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 28px;
             box-shadow: var(--shadow-lg);
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
         }
 
         .stat-card {
             text-align: center;
-            padding: 16px;
+            padding: 14px;
             background: var(--bg-primary);
             border: 1px solid var(--border-primary);
             border-radius: 10px;
         }
 
         .stat-icon {
-            font-size: 28px;
+            font-size: 24px;
             margin-bottom: 6px;
         }
 
         .stat-value {
-            font-size: 28px;
+            font-size: 24px;
             font-weight: 900;
             color: var(--neon-green);
             font-family: 'JetBrains Mono', monospace;
@@ -211,7 +308,7 @@
         }
 
         .stat-label {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -219,94 +316,82 @@
 
         .modes-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+            grid-template-columns: 1fr;
+            gap: 14px;
         }
 
         .mode-card {
             background: var(--bg-secondary);
             border: 2px solid var(--border-primary);
             border-radius: 14px;
-            padding: 28px;
+            padding: 20px;
             cursor: pointer;
             transition: all 0.3s;
             box-shadow: var(--shadow-lg);
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .mode-card:hover {
-            border-color: var(--neon-green);
-            transform: translateY(-4px);
-            box-shadow: 0 0 25px rgba(0, 255, 136, 0.2);
+        .mode-card:active {
+            transform: scale(0.98);
         }
 
         .mode-card.blitz {
             border-color: rgba(255, 214, 10, 0.3);
         }
 
-        .mode-card.blitz:hover {
-            border-color: var(--neon-yellow);
-            box-shadow: 0 0 25px rgba(255, 214, 10, 0.2);
-        }
-
         .mode-card.training {
             border-color: rgba(168, 85, 247, 0.3);
         }
 
-        .mode-card.training:hover {
-            border-color: var(--neon-purple);
-            box-shadow: 0 0 25px rgba(168, 85, 247, 0.2);
-        }
-
         .mode-icon {
-            font-size: 40px;
-            margin-bottom: 12px;
+            font-size: 36px;
+            margin-bottom: 10px;
         }
 
         .mode-name {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 900;
             margin-bottom: 6px;
         }
 
         .mode-desc {
             color: var(--text-secondary);
-            font-size: 13px;
-            margin-bottom: 14px;
-            line-height: 1.5;
+            font-size: 12px;
+            margin-bottom: 12px;
+            line-height: 1.4;
         }
 
         .mode-details {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 16px;
+            gap: 6px;
+            margin-top: 12px;
         }
 
         .mode-tag {
             background: var(--bg-primary);
             border: 1px solid var(--border-primary);
-            padding: 5px 10px;
+            padding: 4px 8px;
             border-radius: 5px;
-            font-size: 10px;
+            font-size: 9px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--text-muted);
             font-family: 'JetBrains Mono', monospace;
         }
 
-        /* ===== GAME SCREEN ===== */
+        /* Game Screen - Mobile optimized */
         .game-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
+            max-width: 100%;
+            padding: 12px;
         }
 
         .game-header {
             background: var(--bg-secondary);
             border: 1px solid var(--border-primary);
-            border-radius: 12px;
-            padding: 16px 24px;
-            margin-bottom: 18px;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 14px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -316,16 +401,17 @@
         .game-info {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         .mode-badge {
             background: var(--bg-primary);
             border: 1px solid var(--neon-green);
-            padding: 7px 14px;
-            border-radius: 6px;
+            padding: 5px 10px;
+            border-radius: 5px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
+            font-size: 9px;
             color: var(--neon-green);
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -333,7 +419,7 @@
 
         .timer-display {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 22px;
+            font-size: 18px;
             font-weight: 900;
             color: var(--neon-green);
         }
@@ -354,48 +440,43 @@
 
         .round-display {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
+            font-size: 11px;
             color: var(--text-secondary);
         }
 
         .home-btn {
-            padding: 7px 14px;
+            padding: 6px 12px;
             background: transparent;
             border: 1px solid var(--border-primary);
             color: var(--text-secondary);
-            border-radius: 6px;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
             transition: all 0.2s;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        .home-btn:hover {
-            border-color: var(--neon-cyan);
-            color: var(--neon-cyan);
-        }
-
         .battle-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 18px;
-            margin-bottom: 18px;
+            grid-template-columns: 1fr;
+            gap: 14px;
+            margin-bottom: 14px;
         }
 
         .player-panel {
             background: var(--bg-secondary);
             border: 1px solid var(--border-primary);
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: 10px;
+            padding: 16px;
             box-shadow: var(--shadow-lg);
             position: relative;
         }
 
         .player-panel.you {
             border-color: var(--neon-green);
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.12);
+            box-shadow: 0 0 16px rgba(0, 255, 136, 0.1);
         }
 
         .player-panel.you::before {
@@ -404,22 +485,22 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 3px;
+            height: 2px;
             background: linear-gradient(90deg, var(--neon-green), transparent);
-            border-radius: 12px 12px 0 0;
+            border-radius: 10px 10px 0 0;
         }
 
         .panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
             border-bottom: 1px solid var(--border-primary);
         }
 
         .panel-title {
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 700;
             color: var(--text-secondary);
             text-transform: uppercase;
@@ -431,7 +512,7 @@
         }
 
         .panel-score {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 900;
             color: var(--neon-green);
             font-family: 'JetBrains Mono', monospace;
@@ -440,25 +521,27 @@
         .word-grid {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 4px;
         }
 
         .word-row {
             display: flex;
-            gap: 5px;
+            gap: 4px;
             justify-content: center;
         }
 
         .tile {
-            width: 52px;
-            height: 52px;
+            width: calc((100vw - 110px) / 5);
+            height: calc((100vw - 110px) / 5);
+            max-width: 56px;
+            max-height: 56px;
             background: var(--bg-primary);
             border: 2px solid var(--border-primary);
-            border-radius: 7px;
+            border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 900;
             font-family: 'JetBrains Mono', monospace;
             transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
@@ -473,7 +556,7 @@
             background: var(--correct);
             border-color: var(--correct);
             color: var(--bg-primary);
-            box-shadow: 0 0 14px rgba(0, 255, 136, 0.3);
+            box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
             animation: flip 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -481,7 +564,7 @@
             background: var(--present);
             border-color: var(--present);
             color: var(--bg-primary);
-            box-shadow: 0 0 14px rgba(255, 214, 10, 0.3);
+            box-shadow: 0 0 12px rgba(255, 214, 10, 0.3);
             animation: flip 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -501,60 +584,58 @@
         .keyboard {
             background: var(--bg-secondary);
             border: 1px solid var(--border-primary);
-            border-radius: 12px;
-            padding: 18px;
+            border-radius: 10px;
+            padding: 14px 8px;
             box-shadow: var(--shadow-lg);
         }
 
         .keyboard-row {
             display: flex;
-            gap: 5px;
+            gap: 4px;
             justify-content: center;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .key {
             background: var(--bg-primary);
             border: 1px solid var(--border-primary);
             color: var(--text-primary);
-            padding: 14px;
-            border-radius: 6px;
-            min-width: 42px;
+            padding: 12px 8px;
+            border-radius: 5px;
+            min-width: calc((100vw - 100px) / 10);
+            max-width: 40px;
             font-weight: 700;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             transition: all 0.15s;
             user-select: none;
             font-family: 'JetBrains Mono', monospace;
-        }
-
-        .key:hover {
-            background: var(--bg-elevated);
-            border-color: var(--text-muted);
-            transform: translateY(-2px);
+            -webkit-tap-highlight-color: transparent;
         }
 
         .key:active {
-            transform: translateY(0);
+            transform: scale(0.95);
+            background: var(--bg-elevated);
         }
 
         .key.wide {
-            min-width: 65px;
-            font-size: 11px;
+            min-width: calc((100vw - 100px) / 6);
+            max-width: 60px;
+            font-size: 10px;
         }
 
         .key.correct {
             background: var(--correct);
             border-color: var(--correct);
             color: var(--bg-primary);
-            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+            box-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
         }
 
         .key.present {
             background: var(--present);
             border-color: var(--present);
             color: var(--bg-primary);
-            box-shadow: 0 0 10px rgba(255, 214, 10, 0.3);
+            box-shadow: 0 0 8px rgba(255, 214, 10, 0.3);
         }
 
         .key.absent {
@@ -563,7 +644,7 @@
             color: var(--text-muted);
         }
 
-        /* ===== RESULT MODAL ===== */
+        /* Result Modal - Mobile */
         .result-modal {
             display: none;
             position: fixed;
@@ -573,6 +654,7 @@
             align-items: center;
             justify-content: center;
             z-index: 9999;
+            padding: 20px;
         }
 
         .result-modal.active {
@@ -583,8 +665,9 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border-primary);
             border-radius: 14px;
-            padding: 40px;
-            max-width: 460px;
+            padding: 32px 24px;
+            max-width: 400px;
+            width: 100%;
             text-align: center;
             box-shadow: var(--shadow-lg);
             animation: modalSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -598,8 +681,8 @@
         }
 
         .result-icon {
-            font-size: 72px;
-            margin-bottom: 20px;
+            font-size: 60px;
+            margin-bottom: 16px;
             animation: resultPulse 0.6s ease;
         }
 
@@ -609,9 +692,9 @@
         }
 
         .result-title {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 900;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             letter-spacing: -0.5px;
         }
 
@@ -628,8 +711,8 @@
             background: var(--bg-primary);
             border: 1px solid var(--border-primary);
             border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
+            padding: 16px;
+            margin: 16px 0;
         }
 
         .result-stat-row {
@@ -645,13 +728,13 @@
 
         .result-stat-label {
             color: var(--text-muted);
-            font-size: 11px;
+            font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .result-stat-value {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 700;
         }
 
@@ -662,12 +745,12 @@
         .result-actions {
             display: flex;
             gap: 10px;
-            margin-top: 26px;
+            margin-top: 20px;
         }
 
         .result-btn {
             flex: 1;
-            padding: 13px;
+            padding: 12px;
             border: none;
             border-radius: 7px;
             font-weight: 700;
@@ -675,7 +758,8 @@
             transition: all 0.2s;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            font-size: 12px;
+            font-size: 11px;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .result-btn.primary {
@@ -683,9 +767,8 @@
             color: var(--bg-primary);
         }
 
-        .result-btn.primary:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--glow-green);
+        .result-btn.primary:active {
+            transform: scale(0.95);
         }
 
         .result-btn.secondary {
@@ -694,32 +777,35 @@
             color: var(--text-secondary);
         }
 
-        .result-btn.secondary:hover {
-            border-color: var(--text-primary);
-            color: var(--text-primary);
-        }
-
-        @media (max-width: 1024px) {
+        @media (min-width: 768px) {
             .battle-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
             }
-        }
-
-        @media (max-width: 768px) {
-            .tile {
-                width: 45px;
-                height: 45px;
-                font-size: 20px;
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
             }
-            .key {
-                padding: 11px;
-                min-width: 34px;
-                font-size: 12px;
+            .modes-grid {
+                grid-template-columns: repeat(3, 1fr);
             }
         }
     </style>
 </head>
 <body>
+    <!-- Install Prompt -->
+    <div class="install-prompt" id="installPrompt">
+        <div class="install-content">
+            <div class="install-icon">📱</div>
+            <div class="install-text">
+                <h3>Install Worduel</h3>
+                <p>Add to home screen for best experience!</p>
+            </div>
+        </div>
+        <div class="install-buttons">
+            <button class="install-btn primary" id="installBtn">Install</button>
+            <button class="install-btn secondary" id="dismissBtn">Later</button>
+        </div>
+    </div>
+
     <!-- SPLASH SCREEN -->
     <div class="screen active splash-screen" id="splashScreen">
         <div class="splash-logo">⚔️</div>
@@ -746,31 +832,31 @@
                     <div class="stat-card">
                         <div class="stat-icon">🎮</div>
                         <div class="stat-value" id="totalGames">0</div>
-                        <div class="stat-label">Games Played</div>
+                        <div class="stat-label">Games</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">🏆</div>
                         <div class="stat-value" id="totalWins">0</div>
-                        <div class="stat-label">Victories</div>
+                        <div class="stat-label">Wins</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">🔥</div>
                         <div class="stat-value" id="winStreak">0</div>
-                        <div class="stat-label">Win Streak</div>
+                        <div class="stat-label">Streak</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">⭐</div>
                         <div class="stat-value" id="winRate">0%</div>
-                        <div class="stat-label">Win Rate</div>
+                        <div class="stat-label">Rate</div>
                     </div>
                 </div>
             </div>
 
             <div class="modes-grid">
-                <div class="mode-card" onclick="startMode('best-of-3')">
+                <div class="mode-card" onclick="startMode('best-of-3'); vibrate();">
                     <div class="mode-icon">🏆</div>
                     <div class="mode-name">BEST OF 3</div>
-                    <div class="mode-desc">First to win 2 rounds takes the match. Strategic gameplay with round-based scoring.</div>
+                    <div class="mode-desc">First to win 2 rounds takes the match. Strategic gameplay.</div>
                     <div class="mode-details">
                         <div class="mode-tag">⏱️ 3 min/round</div>
                         <div class="mode-tag">🎯 ranked</div>
@@ -778,10 +864,10 @@
                     </div>
                 </div>
 
-                <div class="mode-card blitz" onclick="startMode('blitz')">
+                <div class="mode-card blitz" onclick="startMode('blitz'); vibrate();">
                     <div class="mode-icon">⚡</div>
                     <div class="mode-name">BLITZ</div>
-                    <div class="mode-desc">5-minute speed challenge. Solve as many words as possible before time runs out!</div>
+                    <div class="mode-desc">5-minute speed challenge. Solve as many words as possible!</div>
                     <div class="mode-details">
                         <div class="mode-tag">⏱️ 5 minutes</div>
                         <div class="mode-tag">🚀 speed</div>
@@ -789,10 +875,10 @@
                     </div>
                 </div>
 
-                <div class="mode-card training" onclick="startMode('training')">
+                <div class="mode-card training" onclick="startMode('training'); vibrate();">
                     <div class="mode-icon">🎓</div>
                     <div class="mode-name">TRAINING</div>
-                    <div class="mode-desc">Practice mode with no time limit. Perfect your strategy and learn new words.</div>
+                    <div class="mode-desc">Practice mode with no time limit. Perfect your strategy.</div>
                     <div class="mode-details">
                         <div class="mode-tag">⏱️ no timer</div>
                         <div class="mode-tag">🎯 practice</div>
@@ -901,50 +987,60 @@
     </div>
 
     <script>
+        // [Full game logic - same as before, truncated for brevity]
         const WORDS = ['CRANE','SLATE','TRACE','STARE','RAISE','SHINE','STONE','BRAVE','GLOVE','PROVE','SHARE','SPARE','PHASE','SHAPE','GRAPE','TRADE','CHASE','HOUSE','MOUSE','PLACE','PLANT','PIANO','CRIME','PRIME','CLIMB','ROUND','SOUND','POUND','MOUNT','CLOUD','PROUD','FLOUR','WORLD','WORTH','WRITE','WRONG','WROTE','FRESH','FLESH','FLASH','TRASH','CRASH'];
 
-        let stats = {
-            totalGames: 0,
-            totalWins: 0,
-            currentStreak: 0
-        };
-
+        let stats = { totalGames: 0, totalWins: 0, currentStreak: 0 };
         let currentMode = '';
         let game = {
-            targetWord: '',
-            currentGuess: '',
-            currentRow: 0,
-            yourGuesses: [],
-            opponentGuesses: [],
-            gameOver: false,
-            yourWins: 0,
-            opponentWins: 0,
-            currentRound: 1,
-            timeLeft: 0,
-            timerInterval: null,
-            opponentInterval: null,
-            wordsCompleted: 0
+            targetWord: '', currentGuess: '', currentRow: 0,
+            yourGuesses: [], opponentGuesses: [], gameOver: false,
+            yourWins: 0, opponentWins: 0, currentRound: 1,
+            timeLeft: 0, timerInterval: null, opponentInterval: null, wordsCompleted: 0
         };
 
-        // ===== SPLASH SCREEN TIMER =====
+        // PWA Install
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installPrompt').classList.add('show');
+        });
+
+        document.getElementById('installBtn').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                document.getElementById('installPrompt').classList.remove('show');
+            }
+        });
+
+        document.getElementById('dismissBtn').addEventListener('click', () => {
+            document.getElementById('installPrompt').classList.remove('show');
+        });
+
+        // Haptic feedback
+        function vibrate(duration = 10) {
+            if (navigator.vibrate) navigator.vibrate(duration);
+        }
+
+        // Splash screen
         let splashCountdown = 3;
         const splashTimerEl = document.getElementById('splashTimer');
-        
         const splashInterval = setInterval(() => {
             splashCountdown--;
             splashTimerEl.textContent = `Loading... ${splashCountdown}s`;
-            
             if (splashCountdown <= 0) {
                 clearInterval(splashInterval);
                 const splashScreen = document.getElementById('splashScreen');
                 splashScreen.classList.remove('active');
-                splashScreen.style.display = 'none'; // Completely hide splash
+                splashScreen.style.display = 'none';
                 document.getElementById('homeScreen').classList.add('active');
                 loadStats();
             }
         }, 1000);
 
-        // ===== STATS =====
         function loadStats() {
             const saved = localStorage.getItem('worduelStats');
             if (saved) {
@@ -965,36 +1061,30 @@
             document.getElementById('winRate').textContent = winRate + '%';
         }
 
-        // ===== MODE SELECTION =====
         function startMode(mode) {
+            vibrate(20);
             currentMode = mode;
             document.getElementById('homeScreen').classList.remove('active');
             document.getElementById('gameScreen').classList.add('active');
             
-            const modeNames = {
-                'best-of-3': 'BEST OF 3',
-                'blitz': 'BLITZ MODE',
-                'training': 'TRAINING'
-            };
+            const modeNames = { 'best-of-3': 'BEST OF 3', 'blitz': 'BLITZ MODE', 'training': 'TRAINING' };
             document.getElementById('currentMode').textContent = modeNames[mode];
             
-            // Configure timer and info
             if (mode === 'best-of-3') {
-                game.timeLeft = 180; // 3 minutes
+                game.timeLeft = 180;
                 document.getElementById('roundInfo').textContent = 'ROUND 1 OF 3';
             } else if (mode === 'blitz') {
-                game.timeLeft = 300; // 5 minutes
+                game.timeLeft = 300;
                 document.getElementById('roundInfo').textContent = 'WORDS: 0';
             } else if (mode === 'training') {
-                game.timeLeft = -1; // No timer
+                game.timeLeft = -1;
                 document.getElementById('timer').textContent = '∞';
-                document.getElementById('roundInfo').textContent = 'PRACTICE MODE';
+                document.getElementById('roundInfo').textContent = 'PRACTICE';
             }
             
             startGame();
         }
 
-        // ===== GAME LOGIC =====
         function startGame() {
             game.targetWord = WORDS[Math.floor(Math.random() * WORDS.length)];
             game.currentGuess = '';
@@ -1003,16 +1093,13 @@
             game.opponentGuesses = [];
             game.gameOver = false;
             
-            console.log('Target word:', game.targetWord);
+            console.log('Target:', game.targetWord);
             
             createGrid('yourGrid');
             createGrid('opponentGrid');
             setupKeyboard();
             
-            if (game.timeLeft > 0) {
-                startTimer();
-            }
-            
+            if (game.timeLeft > 0) startTimer();
             startOpponent();
             
             document.getElementById('yourScore').textContent = game.yourWins;
@@ -1021,10 +1108,8 @@
 
         function startTimer() {
             if (game.timerInterval) clearInterval(game.timerInterval);
-            
             game.timerInterval = setInterval(() => {
                 game.timeLeft--;
-                
                 const minutes = Math.floor(game.timeLeft / 60);
                 const seconds = game.timeLeft % 60;
                 document.getElementById('timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -1048,25 +1133,22 @@
         function createGrid(id) {
             const grid = document.getElementById(id);
             grid.innerHTML = '';
-            
             for (let i = 0; i < 6; i++) {
                 const row = document.createElement('div');
                 row.className = 'word-row';
-                
                 for (let j = 0; j < 5; j++) {
                     const tile = document.createElement('div');
                     tile.className = 'tile';
                     tile.id = `${id}-${i}-${j}`;
                     row.appendChild(tile);
                 }
-                
                 grid.appendChild(row);
             }
         }
 
         function setupKeyboard() {
             document.querySelectorAll('.key').forEach(key => {
-                key.onclick = () => handleKey(key.dataset.key);
+                key.onclick = () => { handleKey(key.dataset.key); vibrate(5); };
                 key.classList.remove('correct', 'present', 'absent');
             });
             
@@ -1125,6 +1207,7 @@
         }
 
         function submitGuess() {
+            vibrate(15);
             const evaluation = evaluateGuess(game.currentGuess, game.targetWord);
             game.yourGuesses.push({word: game.currentGuess, eval: evaluation});
             
@@ -1133,6 +1216,7 @@
             
             if (evaluation.every(e => e === 'correct')) {
                 game.gameOver = true;
+                vibrate([50, 100, 50]);
                 
                 if (currentMode === 'blitz') {
                     game.wordsCompleted++;
@@ -1262,6 +1346,7 @@
             document.getElementById('oppGuesses').textContent = game.opponentGuesses.length;
             
             document.getElementById('playAgainBtn').onclick = () => {
+                vibrate(15);
                 document.getElementById('resultModal').classList.remove('active');
                 startGame();
             };
@@ -1305,6 +1390,7 @@
             }
             
             document.getElementById('playAgainBtn').onclick = () => {
+                vibrate(15);
                 document.getElementById('resultModal').classList.remove('active');
                 game.yourWins = 0;
                 game.opponentWins = 0;
@@ -1317,6 +1403,7 @@
         }
 
         function goHome() {
+            vibrate(10);
             if (game.timerInterval) clearInterval(game.timerInterval);
             if (game.opponentInterval) clearInterval(game.opponentInterval);
             
