@@ -3,480 +3,710 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0a0e14">
-    <title>Worduel - Mobile</title>
-    <link rel="manifest" href="manifest.json">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;900&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Worduel - Competitive Edition</title>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
         }
 
         :root {
+            /* Competitive Color Palette */
             --bg-primary: #0a0e14;
             --bg-secondary: #151922;
+            --bg-tertiary: #1c2129;
             --bg-elevated: #222831;
+            
+            /* Neon Accents */
             --neon-green: #00ff88;
             --neon-yellow: #ffd60a;
             --neon-cyan: #00d9ff;
             --neon-red: #ff3366;
-            --neon-purple: #a855f7;
+            
+            /* Tile Colors */
             --correct: #00ff88;
             --present: #ffd60a;
             --absent: #2d3748;
+            
+            /* UI Elements */
             --border-primary: #2d3748;
+            --border-glow: rgba(0, 255, 136, 0.3);
             --text-primary: #e5e7eb;
             --text-secondary: #9ca3af;
             --text-muted: #6b7280;
+            
+            /* Shadows & Glows */
             --glow-green: 0 0 20px rgba(0, 255, 136, 0.4);
+            --glow-yellow: 0 0 20px rgba(255, 214, 10, 0.4);
             --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.5);
         }
 
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
             overflow-x: hidden;
-            position: fixed;
-            width: 100%;
-            touch-action: manipulation;
-            overscroll-behavior: none;
+            position: relative;
         }
 
+        /* Tech Background Pattern */
         body::before {
             content: '';
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: 
                 linear-gradient(90deg, rgba(0, 255, 136, 0.02) 1px, transparent 1px),
                 linear-gradient(0deg, rgba(0, 255, 136, 0.02) 1px, transparent 1px);
             background-size: 40px 40px;
             pointer-events: none;
+            z-index: 0;
         }
 
-        /* Install Prompt */
-        .install-prompt {
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Connection Status HUD */
+        .status-hud {
             position: fixed;
-            bottom: 20px;
-            left: 20px;
+            top: 20px;
             right: 20px;
-            background: linear-gradient(135deg, var(--neon-green), var(--neon-cyan));
-            color: var(--bg-primary);
-            padding: 16px;
-            border-radius: 12px;
-            box-shadow: var(--shadow-lg);
-            display: none;
-            z-index: 10001;
-            animation: slideUp 0.3s ease;
-        }
-
-        .install-prompt.show {
-            display: block;
-        }
-
-        @keyframes slideUp {
-            from {
-                transform: translateY(100px);
-                opacity: 0;
-            }
-        }
-
-        .install-content {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-primary);
+            padding: 12px 20px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .install-icon {
-            font-size: 32px;
-        }
-
-        .install-text h3 {
-            font-size: 16px;
-            margin-bottom: 4px;
-        }
-
-        .install-text p {
+            z-index: 10000;
+            font-family: 'JetBrains Mono', monospace;
             font-size: 12px;
-            opacity: 0.9;
+            box-shadow: var(--shadow-lg);
         }
 
-        .install-buttons {
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--neon-red);
+            box-shadow: 0 0 10px var(--neon-red);
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background: var(--neon-green);
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* Auth Screen - Minimal & Clean */
+        .auth-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             display: flex;
-            gap: 8px;
-        }
-
-        .install-btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .install-btn.primary {
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
             background: var(--bg-primary);
-            color: var(--neon-green);
         }
 
-        .install-btn.secondary {
-            background: rgba(0, 0, 0, 0.2);
-            color: var(--bg-primary);
+        .auth-container {
+            width: 440px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 48px;
+            box-shadow: var(--shadow-lg);
+            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        /* Mobile optimizations */
-        .screen {
-            display: none;
-            height: 100vh;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .screen.active {
-            display: block;
-        }
-
-        /* Safe area support for notch devices */
-        @supports (padding: max(0px)) {
-            body {
-                padding-left: env(safe-area-inset-left);
-                padding-right: env(safe-area-inset-right);
-                padding-bottom: env(safe-area-inset-bottom);
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
             }
         }
 
-        /* Splash Screen - Mobile optimized */
-        .splash-screen {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
+        .auth-header {
+            text-align: center;
+            margin-bottom: 40px;
         }
 
-        .splash-screen.active {
-            display: flex;
-        }
-
-        .splash-logo {
-            font-size: 80px;
-            margin-bottom: 16px;
-            animation: float 3s ease-in-out infinite;
-            filter: drop-shadow(var(--glow-green));
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-12px); }
-        }
-
-        .splash-title {
+        .auth-logo {
             font-size: 48px;
+            margin-bottom: 16px;
+            text-shadow: var(--glow-green);
+        }
+
+        .auth-title {
+            font-size: 32px;
             font-weight: 900;
-            letter-spacing: -1.5px;
-            margin-bottom: 10px;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
             background: linear-gradient(135deg, var(--neon-green), var(--neon-cyan));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .splash-subtitle {
-            font-size: 13px;
+        .auth-subtitle {
             color: var(--text-secondary);
+            font-size: 13px;
+            letter-spacing: 0.5px;
             text-transform: uppercase;
-            letter-spacing: 2px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 8px;
             margin-bottom: 32px;
+            background: var(--bg-primary);
+            padding: 4px;
+            border-radius: 8px;
         }
 
-        .loading-bar {
-            width: 240px;
-            height: 3px;
-            background: var(--bg-secondary);
-            border-radius: 2px;
-            overflow: hidden;
-            margin-bottom: 10px;
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
         }
 
-        .loading-progress {
-            height: 100%;
-            background: linear-gradient(90deg, var(--neon-green), var(--neon-cyan));
-            width: 0%;
-            animation: load 2s ease forwards;
+        .auth-tab.active {
+            background: var(--bg-elevated);
+            color: var(--neon-green);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.2s;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: var(--neon-green);
+            box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1);
+        }
+
+        .auth-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .auth-button {
+            width: 100%;
+            padding: 14px;
+            background: var(--neon-green);
+            border: none;
+            border-radius: 8px;
+            color: var(--bg-primary);
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .auth-button:hover {
+            transform: translateY(-2px);
             box-shadow: var(--glow-green);
         }
 
-        @keyframes load {
-            to { width: 100%; }
+        .auth-button:active {
+            transform: translateY(0);
         }
 
-        .splash-timer {
-            font-family: 'JetBrains Mono', monospace;
+        .error-message {
+            color: var(--neon-red);
             font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 6px;
-        }
-
-        .splash-credit {
-            position: absolute;
-            bottom: 28px;
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        /* Home Screen - Mobile optimized */
-        .home-container {
-            max-width: 100%;
-            padding: 20px 16px;
-            padding-bottom: 40px;
-        }
-
-        .home-header {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        .home-logo {
-            font-size: 56px;
-            margin-bottom: 10px;
-            filter: drop-shadow(var(--glow-green));
-        }
-
-        .home-title {
-            font-size: 36px;
-            font-weight: 900;
-            letter-spacing: -1px;
-            margin-bottom: 6px;
-            background: linear-gradient(135deg, var(--neon-green), var(--neon-cyan));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .home-tagline {
-            font-size: 11px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-
-        .stats-display {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-primary);
-            border-radius: 14px;
-            padding: 20px;
-            margin-bottom: 28px;
-            box-shadow: var(--shadow-lg);
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-
-        .stat-card {
-            text-align: center;
-            padding: 14px;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-primary);
-            border-radius: 10px;
-        }
-
-        .stat-icon {
-            font-size: 24px;
-            margin-bottom: 6px;
-        }
-
-        .stat-value {
-            font-size: 24px;
-            font-weight: 900;
-            color: var(--neon-green);
-            font-family: 'JetBrains Mono', monospace;
-            margin-bottom: 4px;
-        }
-
-        .stat-label {
-            font-size: 10px;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .modes-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 14px;
-        }
-
-        .mode-card {
-            background: var(--bg-secondary);
-            border: 2px solid var(--border-primary);
-            border-radius: 14px;
-            padding: 20px;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: var(--shadow-lg);
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .mode-card:active {
-            transform: scale(0.98);
-        }
-
-        .mode-card.blitz {
-            border-color: rgba(255, 214, 10, 0.3);
-        }
-
-        .mode-card.training {
-            border-color: rgba(168, 85, 247, 0.3);
-        }
-
-        .mode-icon {
-            font-size: 36px;
-            margin-bottom: 10px;
-        }
-
-        .mode-name {
-            font-size: 20px;
-            font-weight: 900;
-            margin-bottom: 6px;
-        }
-
-        .mode-desc {
-            color: var(--text-secondary);
-            font-size: 12px;
-            margin-bottom: 12px;
-            line-height: 1.4;
-        }
-
-        .mode-details {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 12px;
-        }
-
-        .mode-tag {
-            background: var(--bg-primary);
-            border: 1px solid var(--border-primary);
-            padding: 4px 8px;
-            border-radius: 5px;
-            font-size: 9px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: var(--text-muted);
+            margin-top: 8px;
             font-family: 'JetBrains Mono', monospace;
         }
 
-        /* Game Screen - Mobile optimized */
+        /* Main Game Container */
         .game-container {
-            max-width: 100%;
-            padding: 12px;
+            display: none;
         }
 
-        .game-header {
+        .game-container.active {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+        }
+
+        /* Top Bar - Esports Dashboard Style */
+        .top-bar {
             background: var(--bg-secondary);
             border: 1px solid var(--border-primary);
-            border-radius: 10px;
-            padding: 12px 16px;
-            margin-bottom: 14px;
+            border-radius: 12px;
+            padding: 16px 24px;
+            margin-bottom: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             box-shadow: var(--shadow-lg);
         }
 
-        .game-info {
+        .logo-section {
             display: flex;
             align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
+            gap: 12px;
         }
 
-        .mode-badge {
+        .logo-icon {
+            font-size: 28px;
+            filter: drop-shadow(var(--glow-green));
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--neon-green), var(--neon-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .player-stats {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .stat-pill {
             background: var(--bg-primary);
-            border: 1px solid var(--neon-green);
-            padding: 5px 10px;
-            border-radius: 5px;
+            border: 1px solid var(--border-primary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            color: var(--neon-green);
+            font-size: 13px;
+        }
+
+        .stat-pill.highlight {
+            border-color: var(--neon-green);
+            box-shadow: 0 0 12px rgba(0, 255, 136, 0.2);
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        .timer-display {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 18px;
-            font-weight: 900;
-            color: var(--neon-green);
+        .stat-value {
+            color: var(--text-primary);
+            font-weight: 700;
         }
 
-        .timer-display.warning {
-            color: var(--neon-yellow);
-            animation: pulse 1s infinite;
-        }
-
-        .timer-display.danger {
-            color: var(--neon-red);
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .round-display {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: var(--text-secondary);
-        }
-
-        .home-btn {
-            padding: 6px 12px;
+        .logout-btn {
+            padding: 8px 16px;
             background: transparent;
             border: 1px solid var(--border-primary);
             color: var(--text-secondary);
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 600;
             transition: all 0.2s;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
+        .logout-btn:hover {
+            border-color: var(--neon-red);
+            color: var(--neon-red);
+        }
+
+        /* Betting Interface - Clean & Minimal */
+        .betting-screen {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 48px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .betting-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .betting-title {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .betting-subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .bet-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        .bet-option {
+            background: var(--bg-primary);
+            border: 2px solid var(--border-primary);
+            padding: 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bet-option::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.05), transparent);
+            transition: left 0.5s;
+        }
+
+        .bet-option:hover {
+            border-color: var(--neon-green);
+            transform: translateY(-2px);
+        }
+
+        .bet-option:hover::before {
+            left: 100%;
+        }
+
+        .bet-option.selected {
+            border-color: var(--neon-green);
+            background: rgba(0, 255, 136, 0.05);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.15);
+        }
+
+        .bet-amount {
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--neon-green);
+            margin-bottom: 4px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .bet-tier {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .custom-bet {
+            text-align: center;
+            margin: 32px 0;
+        }
+
+        .custom-bet-label {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .custom-bet-input {
+            width: 220px;
+            padding: 12px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .custom-bet-input:focus {
+            outline: none;
+            border-color: var(--neon-green);
+        }
+
+        .find-match-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--neon-green);
+            border: none;
+            border-radius: 8px;
+            color: var(--bg-primary);
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            margin-top: 24px;
+        }
+
+        .find-match-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--glow-green);
+        }
+
+        .find-match-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Matchmaking Screen */
+        .searching-screen {
+            display: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 64px 48px;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .searching-screen.active {
+            display: block;
+        }
+
+        .search-title {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 32px;
+        }
+
+        .radar {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 32px;
+            position: relative;
+            border: 2px solid var(--border-primary);
+            border-radius: 50%;
+        }
+
+        .radar::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 2px;
+            height: 60px;
+            background: var(--neon-green);
+            transform-origin: top;
+            animation: radar-sweep 2s linear infinite;
+            box-shadow: var(--glow-green);
+        }
+
+        @keyframes radar-sweep {
+            from { transform: translate(-50%, 0) rotate(0deg); }
+            to { transform: translate(-50%, 0) rotate(360deg); }
+        }
+
+        .search-info {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 24px 0;
+        }
+
+        .search-info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        .search-info-label {
+            color: var(--text-muted);
+        }
+
+        .search-info-value {
+            color: var(--neon-green);
+            font-weight: 700;
+        }
+
+        .cancel-search-btn {
+            padding: 12px 32px;
+            background: transparent;
+            border: 1px solid var(--border-primary);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 12px;
+        }
+
+        .cancel-search-btn:hover {
+            border-color: var(--neon-red);
+            color: var(--neon-red);
+        }
+
+        /* Game Screen - Symmetrical Dual Display */
+        .game-screen {
+            display: none;
+        }
+
+        .game-screen.active {
+            display: block;
+        }
+
+        /* Match Header with Progress Bars */
+        .match-header {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .versus-display {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .player-side {
+            flex: 1;
+            text-align: center;
+        }
+
+        .player-name-display {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .player-rank-display {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .vs-divider {
+            width: 60px;
+            height: 60px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 900;
+            color: var(--text-muted);
+        }
+
+        .pot-display {
+            background: var(--bg-primary);
+            border: 1px solid var(--neon-green);
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .pot-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        .pot-amount {
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--neon-green);
+            font-family: 'JetBrains Mono', monospace;
+            text-shadow: var(--glow-green);
+        }
+
+        /* Symmetrical Grid Layout */
         .battle-grid {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 14px;
-            margin-bottom: 14px;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
         }
 
         .player-panel {
             background: var(--bg-secondary);
             border: 1px solid var(--border-primary);
-            border-radius: 10px;
-            padding: 16px;
+            border-radius: 12px;
+            padding: 24px;
             box-shadow: var(--shadow-lg);
             position: relative;
         }
 
         .player-panel.you {
             border-color: var(--neon-green);
-            box-shadow: 0 0 16px rgba(0, 255, 136, 0.1);
+            box-shadow: 0 0 24px rgba(0, 255, 136, 0.15);
         }
 
         .player-panel.you::before {
@@ -485,66 +715,59 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 2px;
+            height: 3px;
             background: linear-gradient(90deg, var(--neon-green), transparent);
-            border-radius: 10px 10px 0 0;
+            border-radius: 12px 12px 0 0;
         }
 
         .panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
-            padding-bottom: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
             border-bottom: 1px solid var(--border-primary);
         }
 
         .panel-title {
-            font-size: 11px;
+            font-size: 14px;
             font-weight: 700;
             color: var(--text-secondary);
             text-transform: uppercase;
-            letter-spacing: 0.8px;
+            letter-spacing: 1px;
         }
 
         .panel-title.you {
             color: var(--neon-green);
         }
 
-        .panel-score {
-            font-size: 18px;
-            font-weight: 900;
-            color: var(--neon-green);
-            font-family: 'JetBrains Mono', monospace;
-        }
-
+        /* Word Grid - Clean Geometry */
         .word-grid {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 6px;
         }
 
         .word-row {
             display: flex;
-            gap: 4px;
+            gap: 6px;
             justify-content: center;
         }
 
         .tile {
-            width: calc((100vw - 110px) / 5);
-            height: calc((100vw - 110px) / 5);
-            max-width: 56px;
-            max-height: 56px;
+            width: 56px;
+            height: 56px;
             background: var(--bg-primary);
             border: 2px solid var(--border-primary);
-            border-radius: 6px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
+            font-size: 26px;
             font-weight: 900;
             font-family: 'JetBrains Mono', monospace;
             transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
         }
 
         .tile.filled {
@@ -552,90 +775,94 @@
             transform: scale(1.05);
         }
 
+        /* Tile Flip Animation */
         .tile.correct {
             background: var(--correct);
             border-color: var(--correct);
             color: var(--bg-primary);
-            box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
-            animation: flip 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 0 16px rgba(0, 255, 136, 0.4);
+            animation: tileFlip 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .tile.present {
             background: var(--present);
             border-color: var(--present);
             color: var(--bg-primary);
-            box-shadow: 0 0 12px rgba(255, 214, 10, 0.3);
-            animation: flip 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 0 16px rgba(255, 214, 10, 0.4);
+            animation: tileFlip 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
         .tile.absent {
             background: var(--absent);
             border-color: var(--absent);
             color: var(--text-muted);
-            animation: flip 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: tileFlip 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        @keyframes flip {
+        @keyframes tileFlip {
             0% { transform: rotateX(0); }
             50% { transform: rotateX(90deg); }
             100% { transform: rotateX(0); }
         }
 
+        /* Keyboard - Refined & Minimal */
         .keyboard {
             background: var(--bg-secondary);
             border: 1px solid var(--border-primary);
-            border-radius: 10px;
-            padding: 14px 8px;
+            border-radius: 12px;
+            padding: 20px;
             box-shadow: var(--shadow-lg);
         }
 
         .keyboard-row {
             display: flex;
-            gap: 4px;
+            gap: 6px;
             justify-content: center;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
 
         .key {
             background: var(--bg-primary);
             border: 1px solid var(--border-primary);
             color: var(--text-primary);
-            padding: 12px 8px;
-            border-radius: 5px;
-            min-width: calc((100vw - 100px) / 10);
-            max-width: 40px;
+            padding: 16px;
+            border-radius: 6px;
+            min-width: 44px;
             font-weight: 700;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 14px;
             transition: all 0.15s;
             user-select: none;
             font-family: 'JetBrains Mono', monospace;
-            -webkit-tap-highlight-color: transparent;
+        }
+
+        .key:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--text-muted);
+            transform: translateY(-2px);
         }
 
         .key:active {
-            transform: scale(0.95);
-            background: var(--bg-elevated);
+            transform: translateY(0);
         }
 
         .key.wide {
-            min-width: calc((100vw - 100px) / 6);
-            max-width: 60px;
-            font-size: 10px;
+            min-width: 70px;
+            font-size: 12px;
         }
 
         .key.correct {
             background: var(--correct);
             border-color: var(--correct);
             color: var(--bg-primary);
-            box-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
+            box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
         }
 
         .key.present {
             background: var(--present);
             border-color: var(--present);
             color: var(--bg-primary);
-            box-shadow: 0 0 8px rgba(255, 214, 10, 0.3);
+            box-shadow: 0 0 12px rgba(255, 214, 10, 0.3);
         }
 
         .key.absent {
@@ -644,30 +871,32 @@
             color: var(--text-muted);
         }
 
-        /* Result Modal - Mobile */
+        /* Result Modal - Esports Victory */
         .result-modal {
             display: none;
             position: fixed;
-            inset: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: rgba(10, 14, 20, 0.95);
             backdrop-filter: blur(8px);
             align-items: center;
             justify-content: center;
             z-index: 9999;
-            padding: 20px;
         }
 
         .result-modal.active {
             display: flex;
+            animation: fadeIn 0.3s ease;
         }
 
         .result-container {
             background: var(--bg-secondary);
             border: 1px solid var(--border-primary);
-            border-radius: 14px;
-            padding: 32px 24px;
-            max-width: 400px;
-            width: 100%;
+            border-radius: 16px;
+            padding: 48px;
+            max-width: 500px;
             text-align: center;
             box-shadow: var(--shadow-lg);
             animation: modalSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -676,26 +905,26 @@
         @keyframes modalSlide {
             from {
                 opacity: 0;
-                transform: translateY(-30px) scale(0.95);
+                transform: translateY(-40px) scale(0.9);
             }
         }
 
         .result-icon {
-            font-size: 60px;
-            margin-bottom: 16px;
+            font-size: 80px;
+            margin-bottom: 24px;
             animation: resultPulse 0.6s ease;
         }
 
         @keyframes resultPulse {
             0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.12); }
+            50% { transform: scale(1.15); }
         }
 
         .result-title {
-            font-size: 28px;
+            font-size: 36px;
             font-weight: 900;
-            margin-bottom: 18px;
-            letter-spacing: -0.5px;
+            margin-bottom: 24px;
+            letter-spacing: -1px;
         }
 
         .result-title.win {
@@ -710,15 +939,15 @@
         .result-stats-grid {
             background: var(--bg-primary);
             border: 1px solid var(--border-primary);
-            border-radius: 10px;
-            padding: 16px;
-            margin: 16px 0;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
         }
 
         .result-stat-row {
             display: flex;
             justify-content: space-between;
-            padding: 10px 0;
+            padding: 12px 0;
             font-family: 'JetBrains Mono', monospace;
         }
 
@@ -728,13 +957,13 @@
 
         .result-stat-label {
             color: var(--text-muted);
-            font-size: 10px;
+            font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .result-stat-value {
-            font-size: 14px;
+            font-size: 18px;
             font-weight: 700;
         }
 
@@ -742,24 +971,27 @@
             color: var(--neon-green);
         }
 
+        .result-stat-value.negative {
+            color: var(--neon-red);
+        }
+
         .result-actions {
             display: flex;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 12px;
+            margin-top: 32px;
         }
 
         .result-btn {
             flex: 1;
-            padding: 12px;
+            padding: 14px;
             border: none;
-            border-radius: 7px;
+            border-radius: 8px;
             font-weight: 700;
             cursor: pointer;
             transition: all 0.2s;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            font-size: 11px;
-            -webkit-tap-highlight-color: transparent;
+            font-size: 13px;
         }
 
         .result-btn.primary {
@@ -767,8 +999,9 @@
             color: var(--bg-primary);
         }
 
-        .result-btn.primary:active {
-            transform: scale(0.95);
+        .result-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--glow-green);
         }
 
         .result-btn.secondary {
@@ -777,383 +1010,564 @@
             color: var(--text-secondary);
         }
 
-        @media (min-width: 768px) {
+        .result-btn.secondary:hover {
+            border-color: var(--text-primary);
+            color: var(--text-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
             .battle-grid {
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: 1fr;
             }
-            .stats-grid {
-                grid-template-columns: repeat(4, 1fr);
+
+            .bet-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
-            .modes-grid {
-                grid-template-columns: repeat(3, 1fr);
+        }
+
+        @media (max-width: 768px) {
+            .tile {
+                width: 48px;
+                height: 48px;
+                font-size: 22px;
             }
+
+            .key {
+                padding: 12px;
+                min-width: 36px;
+                font-size: 13px;
+            }
+
+            .bet-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
-    <!-- Install Prompt -->
-    <div class="install-prompt" id="installPrompt">
-        <div class="install-content">
-            <div class="install-icon">📱</div>
-            <div class="install-text">
-                <h3>Install Worduel</h3>
-                <p>Add to home screen for best experience!</p>
+    <!-- Status HUD -->
+    <div class="status-hud">
+        <div class="status-indicator" id="statusIndicator"></div>
+        <span id="statusText">DISCONNECTED</span>
+        <div style="border-left: 1px solid var(--border-primary); height: 16px; margin: 0 4px;"></div>
+        <span><span id="onlineCount">0</span> ONLINE</span>
+    </div>
+
+    <!-- Auth Screen -->
+    <div class="auth-screen" id="authScreen">
+        <div class="auth-container">
+            <div class="auth-header">
+                <div class="auth-logo">⚔️</div>
+                <h1 class="auth-title">WORDUEL</h1>
+                <p class="auth-subtitle">Competitive Word Arena</p>
             </div>
-        </div>
-        <div class="install-buttons">
-            <button class="install-btn primary" id="installBtn">Install</button>
-            <button class="install-btn secondary" id="dismissBtn">Later</button>
+
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchTab('login')">LOGIN</button>
+                <button class="auth-tab" onclick="switchTab('register')">REGISTER</button>
+            </div>
+
+            <form class="auth-form active" id="loginForm" onsubmit="handleLogin(event)">
+                <div class="input-group">
+                    <input type="text" class="auth-input" id="loginUsername" placeholder="USERNAME" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" class="auth-input" id="loginPassword" placeholder="PASSWORD" required>
+                </div>
+                <button type="submit" class="auth-button">Enter Arena</button>
+                <div class="error-message" id="loginError"></div>
+            </form>
+
+            <form class="auth-form" id="registerForm" onsubmit="handleRegister(event)">
+                <div class="input-group">
+                    <input type="text" class="auth-input" id="registerUsername" placeholder="USERNAME" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" class="auth-input" id="registerPassword" placeholder="PASSWORD (min 6)" required>
+                </div>
+                <button type="submit" class="auth-button">Create Account</button>
+                <div class="error-message" id="registerError"></div>
+            </form>
         </div>
     </div>
 
-    <!-- SPLASH SCREEN -->
-    <div class="screen active splash-screen" id="splashScreen">
-        <div class="splash-logo">⚔️</div>
-        <h1 class="splash-title">WORDUEL</h1>
-        <p class="splash-subtitle">Competitive Word Battle</p>
-        <div class="loading-bar">
-            <div class="loading-progress"></div>
+    <!-- Game Container -->
+    <div class="game-container" id="gameContainer">
+        <div class="container">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="logo-section">
+                    <span class="logo-icon">⚔️</span>
+                    <span class="logo-text">WORDUEL</span>
+                </div>
+
+                <div class="player-stats">
+                    <div class="stat-pill">
+                        <span id="username">PLAYER</span>
+                    </div>
+                    <div class="stat-pill">
+                        <span id="rankIcon">🥉</span>
+                        <span id="rankName">BRONZE</span>
+                    </div>
+                    <div class="stat-pill">
+                        <span id="mmr">1000</span> MMR
+                    </div>
+                    <div class="stat-pill highlight">
+                        <span style="color: var(--neon-green);">$<span id="balance">1000</span></span>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">EXIT</button>
+                </div>
+            </div>
+
+            <!-- Betting Screen -->
+            <div class="betting-screen" id="bettingScreen">
+                <div class="betting-header">
+                    <h2 class="betting-title">SELECT WAGER</h2>
+                    <p class="betting-subtitle">Choose your stake and enter matchmaking</p>
+                </div>
+
+                <div class="bet-grid">
+                    <div class="bet-option" onclick="selectBet(10)">
+                        <div class="bet-amount">$10</div>
+                        <div class="bet-tier">BRONZE</div>
+                    </div>
+                    <div class="bet-option" onclick="selectBet(25)">
+                        <div class="bet-amount">$25</div>
+                        <div class="bet-tier">SILVER</div>
+                    </div>
+                    <div class="bet-option" onclick="selectBet(50)">
+                        <div class="bet-amount">$50</div>
+                        <div class="bet-tier">GOLD</div>
+                    </div>
+                    <div class="bet-option" onclick="selectBet(100)">
+                        <div class="bet-amount">$100</div>
+                        <div class="bet-tier">PLATINUM</div>
+                    </div>
+                    <div class="bet-option" onclick="selectBet(250)">
+                        <div class="bet-amount">$250</div>
+                        <div class="bet-tier">DIAMOND</div>
+                    </div>
+                    <div class="bet-option" onclick="selectBet(500)">
+                        <div class="bet-amount">$500</div>
+                        <div class="bet-tier">LEGEND</div>
+                    </div>
+                </div>
+
+                <div class="custom-bet">
+                    <div class="custom-bet-label">CUSTOM AMOUNT</div>
+                    <input type="number" class="custom-bet-input" id="customBetInput" placeholder="$$$" min="1">
+                </div>
+
+                <button class="find-match-btn" id="findMatchBtn" onclick="findMatch()" disabled>
+                    SELECT WAGER TO CONTINUE
+                </button>
+            </div>
+
+            <!-- Searching Screen -->
+            <div class="searching-screen" id="searchingScreen">
+                <h2 class="search-title">MATCHMAKING</h2>
+                
+                <div class="radar"></div>
+
+                <div class="search-info">
+                    <div class="search-info-row">
+                        <span class="search-info-label">WAGER</span>
+                        <span class="search-info-value">$<span id="searchBet">0</span></span>
+                    </div>
+                    <div class="search-info-row">
+                        <span class="search-info-label">YOUR MMR</span>
+                        <span class="search-info-value"><span id="searchMMR">1000</span></span>
+                    </div>
+                    <div class="search-info-row">
+                        <span class="search-info-label">RANGE</span>
+                        <span class="search-info-value"><span id="searchRange">800-1200</span></span>
+                    </div>
+                </div>
+
+                <button class="cancel-search-btn" onclick="cancelSearch()">CANCEL</button>
+            </div>
+
+            <!-- Game Screen -->
+            <div class="game-screen" id="gameScreen">
+                <!-- Match Header -->
+                <div class="match-header">
+                    <div class="versus-display">
+                        <div class="player-side">
+                            <div class="player-name-display" id="yourNameDisplay">YOU</div>
+                            <div class="player-rank-display" id="yourRankDisplay">BRONZE • 1000</div>
+                        </div>
+
+                        <div class="vs-divider">VS</div>
+
+                        <div class="player-side">
+                            <div class="player-name-display" id="opponentNameDisplay">OPPONENT</div>
+                            <div class="player-rank-display" id="opponentRankDisplay">BRONZE • 1000</div>
+                        </div>
+                    </div>
+
+                    <div class="pot-display">
+                        <div class="pot-label">PRIZE POOL</div>
+                        <div class="pot-amount">$<span id="potAmount">0</span></div>
+                    </div>
+                </div>
+
+                <!-- Battle Grid -->
+                <div class="battle-grid">
+                    <div class="player-panel you">
+                        <div class="panel-header">
+                            <span class="panel-title you">YOUR BOARD</span>
+                        </div>
+                        <div class="word-grid" id="yourGrid"></div>
+                    </div>
+
+                    <div class="player-panel">
+                        <div class="panel-header">
+                            <span class="panel-title">OPPONENT</span>
+                        </div>
+                        <div class="word-grid" id="opponentGrid"></div>
+                    </div>
+                </div>
+
+                <!-- Keyboard -->
+                <div class="keyboard">
+                    <div class="keyboard-row">
+                        <div class="key" data-key="Q">Q</div>
+                        <div class="key" data-key="W">W</div>
+                        <div class="key" data-key="E">E</div>
+                        <div class="key" data-key="R">R</div>
+                        <div class="key" data-key="T">T</div>
+                        <div class="key" data-key="Y">Y</div>
+                        <div class="key" data-key="U">U</div>
+                        <div class="key" data-key="I">I</div>
+                        <div class="key" data-key="O">O</div>
+                        <div class="key" data-key="P">P</div>
+                    </div>
+                    <div class="keyboard-row">
+                        <div class="key" data-key="A">A</div>
+                        <div class="key" data-key="S">S</div>
+                        <div class="key" data-key="D">D</div>
+                        <div class="key" data-key="F">F</div>
+                        <div class="key" data-key="G">G</div>
+                        <div class="key" data-key="H">H</div>
+                        <div class="key" data-key="J">J</div>
+                        <div class="key" data-key="K">K</div>
+                        <div class="key" data-key="L">L</div>
+                    </div>
+                    <div class="keyboard-row">
+                        <div class="key wide" data-key="Enter">ENTER</div>
+                        <div class="key" data-key="Z">Z</div>
+                        <div class="key" data-key="X">X</div>
+                        <div class="key" data-key="C">C</div>
+                        <div class="key" data-key="V">V</div>
+                        <div class="key" data-key="B">B</div>
+                        <div class="key" data-key="N">N</div>
+                        <div class="key" data-key="M">M</div>
+                        <div class="key wide" data-key="Backspace">⌫</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <p class="splash-timer" id="splashTimer">Loading... 3s</p>
-        <p class="splash-credit">🎮 APLAY STUDIOS</p>
     </div>
 
-    <!-- HOME SCREEN -->
-    <div class="screen" id="homeScreen">
-        <div class="home-container">
-            <div class="home-header">
-                <div class="home-logo">⚔️</div>
-                <h1 class="home-title">WORDUEL</h1>
-                <p class="home-tagline">Choose Your Battle Mode</p>
-            </div>
-
-            <div class="stats-display">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">🎮</div>
-                        <div class="stat-value" id="totalGames">0</div>
-                        <div class="stat-label">Games</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">🏆</div>
-                        <div class="stat-value" id="totalWins">0</div>
-                        <div class="stat-label">Wins</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">🔥</div>
-                        <div class="stat-value" id="winStreak">0</div>
-                        <div class="stat-label">Streak</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">⭐</div>
-                        <div class="stat-value" id="winRate">0%</div>
-                        <div class="stat-label">Rate</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="modes-grid">
-                <div class="mode-card" onclick="startMode('best-of-3'); vibrate();">
-                    <div class="mode-icon">🏆</div>
-                    <div class="mode-name">BEST OF 3</div>
-                    <div class="mode-desc">First to win 2 rounds takes the match. Strategic gameplay.</div>
-                    <div class="mode-details">
-                        <div class="mode-tag">⏱️ 3 min/round</div>
-                        <div class="mode-tag">🎯 ranked</div>
-                        <div class="mode-tag">🔥 competitive</div>
-                    </div>
-                </div>
-
-                <div class="mode-card blitz" onclick="startMode('blitz'); vibrate();">
-                    <div class="mode-icon">⚡</div>
-                    <div class="mode-name">BLITZ</div>
-                    <div class="mode-desc">5-minute speed challenge. Solve as many words as possible!</div>
-                    <div class="mode-details">
-                        <div class="mode-tag">⏱️ 5 minutes</div>
-                        <div class="mode-tag">🚀 speed</div>
-                        <div class="mode-tag">🔄 unlimited</div>
-                    </div>
-                </div>
-
-                <div class="mode-card training" onclick="startMode('training'); vibrate();">
-                    <div class="mode-icon">🎓</div>
-                    <div class="mode-name">TRAINING</div>
-                    <div class="mode-desc">Practice mode with no time limit. Perfect your strategy.</div>
-                    <div class="mode-details">
-                        <div class="mode-tag">⏱️ no timer</div>
-                        <div class="mode-tag">🎯 practice</div>
-                        <div class="mode-tag">😌 casual</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- GAME SCREEN -->
-    <div class="screen" id="gameScreen">
-        <div class="game-container">
-            <div class="game-header">
-                <div class="game-info">
-                    <div class="mode-badge" id="currentMode">BEST OF 3</div>
-                    <div class="timer-display" id="timer">3:00</div>
-                    <div class="round-display" id="roundInfo">ROUND 1 OF 3</div>
-                </div>
-                <button class="home-btn" onclick="goHome()">HOME</button>
-            </div>
-
-            <div class="battle-grid">
-                <div class="player-panel you">
-                    <div class="panel-header">
-                        <span class="panel-title you">YOUR BOARD</span>
-                        <span class="panel-score" id="yourScore">0</span>
-                    </div>
-                    <div class="word-grid" id="yourGrid"></div>
-                </div>
-
-                <div class="player-panel">
-                    <div class="panel-header">
-                        <span class="panel-title">AI OPPONENT</span>
-                        <span class="panel-score" id="opponentScore">0</span>
-                    </div>
-                    <div class="word-grid" id="opponentGrid"></div>
-                </div>
-            </div>
-
-            <div class="keyboard">
-                <div class="keyboard-row">
-                    <div class="key" data-key="Q">Q</div>
-                    <div class="key" data-key="W">W</div>
-                    <div class="key" data-key="E">E</div>
-                    <div class="key" data-key="R">R</div>
-                    <div class="key" data-key="T">T</div>
-                    <div class="key" data-key="Y">Y</div>
-                    <div class="key" data-key="U">U</div>
-                    <div class="key" data-key="I">I</div>
-                    <div class="key" data-key="O">O</div>
-                    <div class="key" data-key="P">P</div>
-                </div>
-                <div class="keyboard-row">
-                    <div class="key" data-key="A">A</div>
-                    <div class="key" data-key="S">S</div>
-                    <div class="key" data-key="D">D</div>
-                    <div class="key" data-key="F">F</div>
-                    <div class="key" data-key="G">G</div>
-                    <div class="key" data-key="H">H</div>
-                    <div class="key" data-key="J">J</div>
-                    <div class="key" data-key="K">K</div>
-                    <div class="key" data-key="L">L</div>
-                </div>
-                <div class="keyboard-row">
-                    <div class="key wide" data-key="Enter">ENTER</div>
-                    <div class="key" data-key="Z">Z</div>
-                    <div class="key" data-key="X">X</div>
-                    <div class="key" data-key="C">C</div>
-                    <div class="key" data-key="V">V</div>
-                    <div class="key" data-key="B">B</div>
-                    <div class="key" data-key="N">N</div>
-                    <div class="key" data-key="M">M</div>
-                    <div class="key wide" data-key="Backspace">⌫</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- RESULT MODAL -->
+    <!-- Result Modal -->
     <div class="result-modal" id="resultModal">
         <div class="result-container">
             <div class="result-icon" id="resultIcon">🏆</div>
             <h2 class="result-title" id="resultTitle">VICTORY</h2>
 
-            <div class="result-stats-grid" id="resultStats">
+            <div class="result-stats-grid">
+                <div class="result-stat-row">
+                    <span class="result-stat-label">WINNINGS</span>
+                    <span class="result-stat-value positive" id="resultWinnings">+$100</span>
+                </div>
+                <div class="result-stat-row">
+                    <span class="result-stat-label">MMR CHANGE</span>
+                    <span class="result-stat-value" id="resultMMR">+25</span>
+                </div>
                 <div class="result-stat-row">
                     <span class="result-stat-label">SOLUTION</span>
                     <span class="result-stat-value" id="resultWord">CRANE</span>
                 </div>
-                <div class="result-stat-row">
-                    <span class="result-stat-label">YOUR GUESSES</span>
-                    <span class="result-stat-value" id="yourGuesses">3</span>
-                </div>
-                <div class="result-stat-row">
-                    <span class="result-stat-label">OPPONENT GUESSES</span>
-                    <span class="result-stat-value" id="oppGuesses">4</span>
-                </div>
             </div>
 
             <div class="result-actions">
-                <button class="result-btn primary" id="playAgainBtn">PLAY AGAIN</button>
-                <button class="result-btn secondary" onclick="goHome()">HOME</button>
+                <button class="result-btn primary" onclick="playAgain()">REMATCH</button>
+                <button class="result-btn secondary" onclick="backToLobby()">LOBBY</button>
             </div>
         </div>
     </div>
 
     <script>
-        // [Full game logic - same as before, truncated for brevity]
-        const WORDS = ['CRANE','SLATE','TRACE','STARE','RAISE','SHINE','STONE','BRAVE','GLOVE','PROVE','SHARE','SPARE','PHASE','SHAPE','GRAPE','TRADE','CHASE','HOUSE','MOUSE','PLACE','PLANT','PIANO','CRIME','PRIME','CLIMB','ROUND','SOUND','POUND','MOUNT','CLOUD','PROUD','FLOUR','WORLD','WORTH','WRITE','WRONG','WROTE','FRESH','FLESH','FLASH','TRASH','CRASH'];
-
-        let stats = { totalGames: 0, totalWins: 0, currentStreak: 0 };
-        let currentMode = '';
-        let game = {
-            targetWord: '', currentGuess: '', currentRow: 0,
-            yourGuesses: [], opponentGuesses: [], gameOver: false,
-            yourWins: 0, opponentWins: 0, currentRound: 1,
-            timeLeft: 0, timerInterval: null, opponentInterval: null, wordsCompleted: 0
+        const SERVER_URL = window.location.origin;
+        let socket = null;
+        let token = null;
+        let currentBet = 0;
+        let gameState = {
+            currentGuess: '',
+            currentRow: 0,
+            guesses: [],
+            gameOver: false
         };
 
-        // PWA Install
-        let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
+        // Auth functions
+        function switchTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+            
+            if (tab === 'login') {
+                document.querySelectorAll('.auth-tab')[0].classList.add('active');
+                document.getElementById('loginForm').classList.add('active');
+            } else {
+                document.querySelectorAll('.auth-tab')[1].classList.add('active');
+                document.getElementById('registerForm').classList.add('active');
+            }
+        }
+
+        async function handleRegister(e) {
             e.preventDefault();
-            deferredPrompt = e;
-            document.getElementById('installPrompt').classList.add('show');
-        });
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+            const errorEl = document.getElementById('registerError');
 
-        document.getElementById('installBtn').addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                deferredPrompt = null;
-                document.getElementById('installPrompt').classList.remove('show');
-            }
-        });
+            try {
+                const response = await fetch(`${SERVER_URL}/api/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
 
-        document.getElementById('dismissBtn').addEventListener('click', () => {
-            document.getElementById('installPrompt').classList.remove('show');
-        });
+                const data = await response.json();
 
-        // Haptic feedback
-        function vibrate(duration = 10) {
-            if (navigator.vibrate) navigator.vibrate(duration);
-        }
-
-        // Splash screen
-        let splashCountdown = 3;
-        const splashTimerEl = document.getElementById('splashTimer');
-        const splashInterval = setInterval(() => {
-            splashCountdown--;
-            splashTimerEl.textContent = `Loading... ${splashCountdown}s`;
-            if (splashCountdown <= 0) {
-                clearInterval(splashInterval);
-                const splashScreen = document.getElementById('splashScreen');
-                splashScreen.classList.remove('active');
-                splashScreen.style.display = 'none';
-                document.getElementById('homeScreen').classList.add('active');
-                loadStats();
-            }
-        }, 1000);
-
-        function loadStats() {
-            const saved = localStorage.getItem('worduelStats');
-            if (saved) {
-                stats = JSON.parse(saved);
-                updateStatsDisplay();
+                if (data.success) {
+                    token = data.token;
+                    updateUserInfo(data.user);
+                    connectSocket();
+                } else {
+                    errorEl.textContent = data.error || 'Registration failed';
+                }
+            } catch (error) {
+                errorEl.textContent = 'Server offline. Run: node worduel-enhanced-server.js';
             }
         }
 
-        function saveStats() {
-            localStorage.setItem('worduelStats', JSON.stringify(stats));
-        }
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorEl = document.getElementById('loginError');
 
-        function updateStatsDisplay() {
-            document.getElementById('totalGames').textContent = stats.totalGames;
-            document.getElementById('totalWins').textContent = stats.totalWins;
-            document.getElementById('winStreak').textContent = stats.currentStreak;
-            const winRate = stats.totalGames > 0 ? Math.round((stats.totalWins / stats.totalGames) * 100) : 0;
-            document.getElementById('winRate').textContent = winRate + '%';
-        }
+            try {
+                const response = await fetch(`${SERVER_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
 
-        function startMode(mode) {
-            vibrate(20);
-            currentMode = mode;
-            document.getElementById('homeScreen').classList.remove('active');
-            document.getElementById('gameScreen').classList.add('active');
-            
-            const modeNames = { 'best-of-3': 'BEST OF 3', 'blitz': 'BLITZ MODE', 'training': 'TRAINING' };
-            document.getElementById('currentMode').textContent = modeNames[mode];
-            
-            if (mode === 'best-of-3') {
-                game.timeLeft = 180;
-                document.getElementById('roundInfo').textContent = 'ROUND 1 OF 3';
-            } else if (mode === 'blitz') {
-                game.timeLeft = 300;
-                document.getElementById('roundInfo').textContent = 'WORDS: 0';
-            } else if (mode === 'training') {
-                game.timeLeft = -1;
-                document.getElementById('timer').textContent = '∞';
-                document.getElementById('roundInfo').textContent = 'PRACTICE';
+                const data = await response.json();
+
+                if (data.success) {
+                    token = data.token;
+                    updateUserInfo(data.user);
+                    connectSocket();
+                } else {
+                    errorEl.textContent = data.error || 'Login failed';
+                }
+            } catch (error) {
+                errorEl.textContent = 'Server offline. Run: node worduel-enhanced-server.js';
             }
-            
-            startGame();
         }
 
-        function startGame() {
-            game.targetWord = WORDS[Math.floor(Math.random() * WORDS.length)];
-            game.currentGuess = '';
-            game.currentRow = 0;
-            game.yourGuesses = [];
-            game.opponentGuesses = [];
-            game.gameOver = false;
+        function updateUserInfo(user) {
+            document.getElementById('username').textContent = user.username.toUpperCase();
+            document.getElementById('balance').textContent = user.balance;
+            document.getElementById('mmr').textContent = user.mmr;
+            document.getElementById('rankIcon').textContent = user.rank.icon;
+            document.getElementById('rankName').textContent = user.rank.name.toUpperCase();
+        }
+
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('statusIndicator');
+            const text = document.getElementById('statusText');
             
-            console.log('Target:', game.targetWord);
+            if (connected) {
+                indicator.classList.add('connected');
+                text.textContent = 'CONNECTED';
+            } else {
+                indicator.classList.remove('connected');
+                text.textContent = 'DISCONNECTED';
+            }
+        }
+
+        function connectSocket() {
+            socket = io(SERVER_URL);
+
+            socket.on('connect', () => {
+                updateConnectionStatus(true);
+                socket.emit('authenticate', { token });
+            });
+
+            socket.on('authenticated', (data) => {
+                document.getElementById('authScreen').style.display = 'none';
+                document.getElementById('gameContainer').classList.add('active');
+            });
+
+            socket.on('auth_error', (data) => {
+                alert(data.message);
+                logout();
+            });
+
+            socket.on('online_count', (count) => {
+                document.getElementById('onlineCount').textContent = count;
+            });
+
+            socket.on('searching', (data) => {
+                document.getElementById('searchBet').textContent = data.betAmount;
+                document.getElementById('searchMMR').textContent = data.mmrRange[0] + 200;
+                document.getElementById('searchRange').textContent = data.mmrRange[0] + '-' + data.mmrRange[1];
+            });
+
+            socket.on('match_found', (data) => {
+                document.getElementById('searchingScreen').classList.remove('active');
+                document.getElementById('gameScreen').classList.add('active');
+                
+                document.getElementById('opponentNameDisplay').textContent = data.opponent.username.toUpperCase();
+                document.getElementById('opponentRankDisplay').textContent = `${data.opponent.rank.name.toUpperCase()} • ${data.opponent.mmr}`;
+                document.getElementById('potAmount').textContent = data.pot;
+            });
+
+            socket.on('match_start', (data) => {
+                console.log('Match starting! Target:', data.targetWord);
+                initGame();
+            });
+
+            socket.on('guess_result', (data) => {
+                revealTiles(data.guess.evaluation, gameState.currentRow, 'yourGrid');
+                updateKeyboard(gameState.currentGuess, data.guess.evaluation);
+                
+                if (data.solved) {
+                    gameState.gameOver = true;
+                }
+                
+                gameState.currentRow++;
+                gameState.currentGuess = '';
+            });
+
+            socket.on('match_end', (data) => {
+                updateUserInfo({
+                    username: document.getElementById('username').textContent,
+                    balance: data.newBalance,
+                    mmr: data.newMMR,
+                    rank: data.newRank
+                });
+                
+                showResult(data);
+            });
+
+            socket.on('disconnect', () => {
+                updateConnectionStatus(false);
+            });
+
+            socket.on('error', (data) => {
+                alert(data.message);
+            });
+        }
+
+        // Betting
+        function selectBet(amount) {
+            const balance = parseInt(document.getElementById('balance').textContent);
+            
+            if (amount > balance) {
+                alert('Insufficient balance!');
+                return;
+            }
+
+            currentBet = amount;
+            
+            document.querySelectorAll('.bet-option').forEach(card => card.classList.remove('selected'));
+            event.target.closest('.bet-option').classList.add('selected');
+            
+            const btn = document.getElementById('findMatchBtn');
+            btn.textContent = `ENTER MATCHMAKING - $${amount}`;
+            btn.disabled = false;
+        }
+
+        function findMatch() {
+            if (currentBet === 0) {
+                const custom = parseInt(document.getElementById('customBetInput').value);
+                if (custom && custom > 0) {
+                    currentBet = custom;
+                }
+            }
+
+            if (currentBet === 0) {
+                alert('Please select a wager');
+                return;
+            }
+
+            const balance = parseInt(document.getElementById('balance').textContent);
+            if (currentBet > balance) {
+                alert('Insufficient balance!');
+                return;
+            }
+
+            document.getElementById('bettingScreen').style.display = 'none';
+            document.getElementById('searchingScreen').classList.add('active');
+            
+            socket.emit('find_match', { betAmount: currentBet });
+        }
+
+        function cancelSearch() {
+            socket.emit('cancel_search');
+            document.getElementById('searchingScreen').classList.remove('active');
+            document.getElementById('bettingScreen').style.display = 'block';
+        }
+
+        // Game logic
+        function initGame() {
+            gameState = {
+                currentGuess: '',
+                currentRow: 0,
+                guesses: [],
+                gameOver: false
+            };
             
             createGrid('yourGrid');
             createGrid('opponentGrid');
             setupKeyboard();
-            
-            if (game.timeLeft > 0) startTimer();
-            startOpponent();
-            
-            document.getElementById('yourScore').textContent = game.yourWins;
-            document.getElementById('opponentScore').textContent = game.opponentWins;
-        }
-
-        function startTimer() {
-            if (game.timerInterval) clearInterval(game.timerInterval);
-            game.timerInterval = setInterval(() => {
-                game.timeLeft--;
-                const minutes = Math.floor(game.timeLeft / 60);
-                const seconds = game.timeLeft % 60;
-                document.getElementById('timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                
-                const timerEl = document.getElementById('timer');
-                if (game.timeLeft <= 30) {
-                    timerEl.className = 'timer-display danger';
-                } else if (game.timeLeft <= 60) {
-                    timerEl.className = 'timer-display warning';
-                } else {
-                    timerEl.className = 'timer-display';
-                }
-                
-                if (game.timeLeft <= 0) {
-                    clearInterval(game.timerInterval);
-                    endRound(false);
-                }
-            }, 1000);
         }
 
         function createGrid(id) {
             const grid = document.getElementById(id);
             grid.innerHTML = '';
+            
             for (let i = 0; i < 6; i++) {
                 const row = document.createElement('div');
                 row.className = 'word-row';
+                
                 for (let j = 0; j < 5; j++) {
                     const tile = document.createElement('div');
                     tile.className = 'tile';
                     tile.id = `${id}-${i}-${j}`;
                     row.appendChild(tile);
                 }
+                
                 grid.appendChild(row);
             }
         }
 
         function setupKeyboard() {
             document.querySelectorAll('.key').forEach(key => {
-                key.onclick = () => { handleKey(key.dataset.key); vibrate(5); };
+                key.onclick = () => handleKey(key.dataset.key);
                 key.classList.remove('correct', 'present', 'absent');
             });
             
             document.onkeydown = (e) => {
-                if (game.gameOver) return;
+                if (gameState.gameOver) return;
                 if (e.key === 'Enter') handleKey('Enter');
                 else if (e.key === 'Backspace') handleKey('Backspace');
                 else if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key.toUpperCase());
@@ -1161,86 +1575,24 @@
         }
 
         function handleKey(key) {
-            if (game.gameOver) return;
+            if (gameState.gameOver) return;
             
-            if (key === 'Enter' && game.currentGuess.length === 5) {
-                submitGuess();
-            } else if (key === 'Backspace' && game.currentGuess.length > 0) {
-                game.currentGuess = game.currentGuess.slice(0, -1);
+            if (key === 'Enter' && gameState.currentGuess.length === 5) {
+                socket.emit('submit_guess', { word: gameState.currentGuess });
+            } else if (key === 'Backspace' && gameState.currentGuess.length > 0) {
+                gameState.currentGuess = gameState.currentGuess.slice(0, -1);
                 updateCurrentRow();
-            } else if (game.currentGuess.length < 5 && /^[A-Z]$/.test(key)) {
-                game.currentGuess += key;
+            } else if (gameState.currentGuess.length < 5 && /^[A-Z]$/.test(key)) {
+                gameState.currentGuess += key;
                 updateCurrentRow();
             }
         }
 
         function updateCurrentRow() {
             for (let i = 0; i < 5; i++) {
-                const tile = document.getElementById(`yourGrid-${game.currentRow}-${i}`);
-                tile.textContent = i < game.currentGuess.length ? game.currentGuess[i] : '';
-                tile.className = 'tile' + (i < game.currentGuess.length ? ' filled' : '');
-            }
-        }
-
-        function evaluateGuess(guess, target) {
-            const result = [];
-            const targetLetters = target.split('');
-            const used = new Array(5).fill(false);
-            
-            for (let i = 0; i < 5; i++) {
-                if (guess[i] === targetLetters[i]) {
-                    result[i] = 'correct';
-                    used[i] = true;
-                } else {
-                    result[i] = null;
-                }
-            }
-            
-            for (let i = 0; i < 5; i++) {
-                if (result[i] === null) {
-                    const idx = targetLetters.findIndex((l, j) => l === guess[i] && !used[j]);
-                    result[i] = idx !== -1 ? (used[idx] = true, 'present') : 'absent';
-                }
-            }
-            
-            return result;
-        }
-
-        function submitGuess() {
-            vibrate(15);
-            const evaluation = evaluateGuess(game.currentGuess, game.targetWord);
-            game.yourGuesses.push({word: game.currentGuess, eval: evaluation});
-            
-            revealTiles(evaluation, game.currentRow, 'yourGrid');
-            updateKeyboard(game.currentGuess, evaluation);
-            
-            if (evaluation.every(e => e === 'correct')) {
-                game.gameOver = true;
-                vibrate([50, 100, 50]);
-                
-                if (currentMode === 'blitz') {
-                    game.wordsCompleted++;
-                    document.getElementById('roundInfo').textContent = `WORDS: ${game.wordsCompleted}`;
-                    setTimeout(() => {
-                        game.gameOver = false;
-                        game.currentRow = 0;
-                        game.yourGuesses = [];
-                        game.opponentGuesses = [];
-                        game.targetWord = WORDS[Math.floor(Math.random() * WORDS.length)];
-                        createGrid('yourGrid');
-                        createGrid('opponentGrid');
-                        setupKeyboard();
-                        console.log('New target:', game.targetWord);
-                    }, 1000);
-                } else {
-                    setTimeout(() => endRound(true), 1500);
-                }
-            } else if (game.currentRow >= 5) {
-                game.gameOver = true;
-                setTimeout(() => endRound(false), 1500);
-            } else {
-                game.currentRow++;
-                game.currentGuess = '';
+                const tile = document.getElementById(`yourGrid-${gameState.currentRow}-${i}`);
+                tile.textContent = i < gameState.currentGuess.length ? gameState.currentGuess[i] : '';
+                tile.className = 'tile' + (i < gameState.currentGuess.length ? ' filled' : '');
             }
         }
 
@@ -1249,7 +1601,7 @@
                 setTimeout(() => {
                     const tile = document.getElementById(`${grid}-${row}-${i}`);
                     tile.classList.add(status);
-                }, i * 140);
+                }, i * 150);
             });
         }
 
@@ -1270,151 +1622,43 @@
             });
         }
 
-        function startOpponent() {
-            if (game.opponentInterval) clearInterval(game.opponentInterval);
-            
-            const makeGuess = () => {
-                if (game.gameOver || game.opponentGuesses.length >= 6) return;
-                
-                const word = Math.random() < 0.22 ? game.targetWord : WORDS[Math.floor(Math.random() * WORDS.length)];
-                const eval = evaluateGuess(word, game.targetWord);
-                game.opponentGuesses.push({word, eval});
-                
-                const row = game.opponentGuesses.length - 1;
-                
-                for (let i = 0; i < 5; i++) {
-                    setTimeout(() => {
-                        const tile = document.getElementById(`opponentGrid-${row}-${i}`);
-                        tile.textContent = '';
-                        tile.classList.add('filled');
-                    }, i * 90);
-                }
-                
-                setTimeout(() => revealTiles(eval, row, 'opponentGrid'), 450);
-                
-                if (eval.every(e => e === 'correct')) {
-                    if (!game.gameOver) {
-                        game.gameOver = true;
-                        setTimeout(() => endRound(false), 1500);
-                    }
-                }
-            };
-            
-            setTimeout(makeGuess, 7000 + Math.random() * 3000);
-            game.opponentInterval = setInterval(makeGuess, 11000 + Math.random() * 7000);
-        }
-
-        function endRound(youWon) {
-            if (game.timerInterval) clearInterval(game.timerInterval);
-            if (game.opponentInterval) clearInterval(game.opponentInterval);
-            
-            if (currentMode === 'best-of-3') {
-                if (youWon) {
-                    game.yourWins++;
-                } else {
-                    game.opponentWins++;
-                }
-                
-                document.getElementById('yourScore').textContent = game.yourWins;
-                document.getElementById('opponentScore').textContent = game.opponentWins;
-                
-                if (game.yourWins >= 2 || game.opponentWins >= 2) {
-                    showFinalResult(game.yourWins > game.opponentWins);
-                } else {
-                    game.currentRound++;
-                    document.getElementById('roundInfo').textContent = `ROUND ${game.currentRound} OF 3`;
-                    setTimeout(() => {
-                        game.timeLeft = 180;
-                        startGame();
-                    }, 2000);
-                }
-            } else if (currentMode === 'blitz') {
-                showFinalResult(true);
-            } else {
-                showResult(youWon);
-            }
-        }
-
-        function showResult(won) {
-            document.getElementById('resultIcon').textContent = won ? '🏆' : '💀';
+        function showResult(data) {
             const resultTitle = document.getElementById('resultTitle');
-            resultTitle.textContent = won ? 'VICTORY' : 'DEFEAT';
-            resultTitle.className = 'result-title ' + (won ? 'win' : 'lose');
             
-            document.getElementById('resultWord').textContent = game.targetWord;
-            document.getElementById('yourGuesses').textContent = game.yourGuesses.length;
-            document.getElementById('oppGuesses').textContent = game.opponentGuesses.length;
+            document.getElementById('resultIcon').textContent = data.won ? '🏆' : '💀';
+            resultTitle.textContent = data.won ? 'VICTORY' : data.draw ? 'DRAW' : 'DEFEAT';
+            resultTitle.className = 'result-title ' + (data.won ? 'win' : 'lose');
             
-            document.getElementById('playAgainBtn').onclick = () => {
-                vibrate(15);
-                document.getElementById('resultModal').classList.remove('active');
-                startGame();
-            };
+            document.getElementById('resultWinnings').textContent = data.won ? `+$${data.winnings}` :
+                                                                    data.draw ? '$0' : `-$${currentBet}`;
+            document.getElementById('resultWinnings').className = 'result-stat-value ' + (data.won ? 'positive' : 'negative');
+            
+            document.getElementById('resultMMR').textContent = `${data.mmrChange > 0 ? '+' : ''}${data.mmrChange}`;
+            document.getElementById('resultMMR').className = 'result-stat-value ' + (data.mmrChange > 0 ? 'positive' : 'negative');
+            
+            document.getElementById('resultWord').textContent = data.targetWord;
             
             document.getElementById('resultModal').classList.add('active');
         }
 
-        function showFinalResult(won) {
-            stats.totalGames++;
-            if (won) {
-                stats.totalWins++;
-                stats.currentStreak++;
-            } else {
-                stats.currentStreak = 0;
-            }
-            saveStats();
-            updateStatsDisplay();
-            
-            document.getElementById('resultIcon').textContent = won ? '🏆' : '💀';
-            const resultTitle = document.getElementById('resultTitle');
-            
-            if (currentMode === 'blitz') {
-                resultTitle.textContent = `${game.wordsCompleted} WORDS!`;
-                resultTitle.className = 'result-title win';
-                document.getElementById('resultStats').innerHTML = `
-                    <div class="result-stat-row">
-                        <span class="result-stat-label">WORDS SOLVED</span>
-                        <span class="result-stat-value positive">${game.wordsCompleted}</span>
-                    </div>
-                    <div class="result-stat-row">
-                        <span class="result-stat-label">FINAL WORD</span>
-                        <span class="result-stat-value">${game.targetWord}</span>
-                    </div>
-                `;
-            } else {
-                resultTitle.textContent = won ? 'MATCH WON!' : 'MATCH LOST';
-                resultTitle.className = 'result-title ' + (won ? 'win' : 'lose');
-                document.getElementById('resultWord').textContent = game.targetWord;
-                document.getElementById('yourGuesses').textContent = game.yourWins;
-                document.getElementById('oppGuesses').textContent = game.opponentWins;
-            }
-            
-            document.getElementById('playAgainBtn').onclick = () => {
-                vibrate(15);
-                document.getElementById('resultModal').classList.remove('active');
-                game.yourWins = 0;
-                game.opponentWins = 0;
-                game.currentRound = 1;
-                game.wordsCompleted = 0;
-                startMode(currentMode);
-            };
-            
-            document.getElementById('resultModal').classList.add('active');
-        }
-
-        function goHome() {
-            vibrate(10);
-            if (game.timerInterval) clearInterval(game.timerInterval);
-            if (game.opponentInterval) clearInterval(game.opponentInterval);
-            
-            document.getElementById('gameScreen').classList.remove('active');
+        function playAgain() {
             document.getElementById('resultModal').classList.remove('active');
-            document.getElementById('homeScreen').classList.add('active');
-            
-            game.yourWins = 0;
-            game.opponentWins = 0;
-            game.currentRound = 1;
-            game.wordsCompleted = 0;
+            document.getElementById('gameScreen').classList.remove('active');
+            document.getElementById('bettingScreen').style.display = 'block';
+            currentBet = 0;
+            document.getElementById('findMatchBtn').textContent = 'SELECT WAGER TO CONTINUE';
+            document.getElementById('findMatchBtn').disabled = true;
+            document.querySelectorAll('.bet-option').forEach(card => card.classList.remove('selected'));
+        }
+
+        function backToLobby() {
+            playAgain();
+        }
+
+        function logout() {
+            if (socket) socket.disconnect();
+            token = null;
+            location.reload();
         }
     </script>
 </body>
